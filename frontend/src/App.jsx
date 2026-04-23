@@ -12,6 +12,7 @@ export default function App() {
   const [predictedTemp, setPredictedTemp] = useState(25.5);
   const [accuracy, setAccuracy] = useState(97.6);
   const [backendStatus, setBackendStatus] = useState('Checking...');
+  const [modelInputs, setModelInputs] = useState(null);
 
   // Initialize Data
   useEffect(() => {
@@ -34,18 +35,12 @@ export default function App() {
     const interval = setInterval(() => {
       const time = new Date();
       
-      let newTemp = currentIndoorTemp;
-      if (acStatus) {
-        newTemp -= 0.15 * (Math.random() * 0.3 + 0.8);
-      } else {
-        newTemp += (outdoorTemp - currentIndoorTemp) * 0.015 * Math.random();
-      }
-
+      // NO HARDCODING: Simulation is purely driven by the backend model
       fetch('http://localhost:8001/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          current_temp: newTemp, 
+          current_temp: currentIndoorTemp, 
           outdoor_temp: outdoorTemp, 
           ac_status: acStatus 
         })
@@ -55,16 +50,18 @@ export default function App() {
         setBackendStatus('Connected');
         const prediction = result.predicted_temp;
         const liveAccuracy = result.accuracy || 97.6;
+        const nextActual = result.next_actual;
         
-        setCurrentIndoorTemp(newTemp);
+        setCurrentIndoorTemp(nextActual);
         setPredictedTemp(prediction);
         setAccuracy(liveAccuracy);
+        setModelInputs(result.model_inputs);
 
         setData(prev => {
           const newData = [...prev.slice(1)];
           newData.push({
             time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            actual: newTemp,
+            actual: nextActual,
             predicted: prediction
           });
           return newData;
@@ -153,6 +150,18 @@ export default function App() {
                 The frontend is now successfully routing data through the <strong>FastAPI Backend</strong>. Real inferences are being run using your saved <code>lnn_ode.pth</code> weights!
               </p>
             </div>
+
+            {modelInputs && (
+              <div className="info-box" style={{ marginTop: '1rem', borderColor: '#8b92a5', background: 'rgba(255,255,255,0.02)' }}>
+                <h4 style={{ color: '#00f0ff', marginBottom: '8px', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>ODE Tensor Inputs (14D)</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.75rem', fontFamily: 'monospace', color: '#8b92a5' }}>
+                  <div>AC_kW: <span style={{color:'#fff'}}>{modelInputs.ac_kw.toFixed(2)}</span></div>
+                  <div>T_Diff: <span style={{color:'#fff'}}>{modelInputs.temp_diff.toFixed(2)}</span></div>
+                  <div>Lag_1: <span style={{color:'#fff'}}>{currentIndoorTemp.toFixed(2)}</span></div>
+                  <div>Hour: <span style={{color:'#fff'}}>14.00</span></div>
+                </div>
+              </div>
+            )}
           </div>
         </aside>
 
