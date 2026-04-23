@@ -2,6 +2,8 @@
 
 > A dynamic, continuous-time Neural ODE architecture designed to model and predict real-world HVAC dynamics and indoor temperature variations.
 
+![LNN Dashboard Preview](dashboard_preview.png)
+
 ## 📖 Overview
 
 This project implements a **Liquid Neural Network (LNN)** utilizing Ordinary Differential Equations (ODEs) via PyTorch and `torchdiffeq`. I researched and chose Liquid Neural Networks for this task because **LNNs are uniquely capable of adapting to dynamic, continuous-time environments**, making them highly effective for forecasting physical systems like building thermodynamics where variables change fluidly over time.
