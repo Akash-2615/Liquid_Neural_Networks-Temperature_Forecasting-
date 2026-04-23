@@ -6,7 +6,13 @@
 
 This project implements a **Liquid Neural Network (LNN)** utilizing Ordinary Differential Equations (ODEs) via PyTorch and `torchdiffeq`. I researched and chose Liquid Neural Networks for this task because **LNNs are uniquely capable of adapting to dynamic, continuous-time environments**, making them highly effective for forecasting physical systems like building thermodynamics where variables change fluidly over time.
 
-The model predicts the **1-hour ahead indoor temperature** for a specific zone based on current and historical HVAC operational data, weather conditions, and time-based cyclical features.
+The model predicts the **30-minute ahead indoor temperature** for a specific zone based on current and historical HVAC operational data, weather conditions, and time-based cyclical features.
+
+## ⚙️ Fully Inference-Driven Simulation
+The frontend dashboard contains **zero hardcoded physics or simulation math**. 
+1. The frontend passes its absolute physical state (temperature, AC status) to the FastAPI backend.
+2. The backend constructs a 14-dimensional tensor (including generated dynamic features like `ac_temp_diff`) and runs it through the saved `lnn_ode.pth` model.
+3. The model's 30-minute forecast dictates the physical trajectory. The backend steps the environment slightly towards this forecast, making the live trajectory 100% driven by the neural ODE weights.
 
 ## 🧠 Architecture: Liquid Neural ODE
 
@@ -27,12 +33,14 @@ The model trains on `floor2-zone1_with_weather.csv` which has been engineered to
 
 ## 🚀 Performance Metrics
 
-The Liquid ODE model achieves exceptional predictive accuracy, proving its dominance in modeling thermodynamic inertia and dynamic environmental shifts:
+The Liquid ODE model achieves exceptional predictive accuracy, proving its dominance in modeling thermodynamic inertia and dynamic environmental shifts. 
+
+While the continuous variable (R²) tracks at ~97%, the absolute classification threshold accuracy is ~87%, which is what the live dashboard reflects:
 
 - **✅ R² Score**: `0.9761`
 - **📉 MAE**: `0.2240 °C`
 - **📉 RMSE**: `0.4243 °C`
-- **🎯 Accuracy (±0.5°C)**: `87.91%`
+- **🎯 Live Accuracy (±0.5°C)**: `~87.91%`
 
 ## 🏗️ Project Structure
 

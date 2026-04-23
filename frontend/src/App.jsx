@@ -10,7 +10,7 @@ export default function App() {
   const [outdoorTemp, setOutdoorTemp] = useState(32.0);
   const [currentIndoorTemp, setCurrentIndoorTemp] = useState(25.0);
   const [predictedTemp, setPredictedTemp] = useState(25.5);
-  const [accuracy, setAccuracy] = useState(97.6);
+  const [accuracy, setAccuracy] = useState(87.2);
   const [backendStatus, setBackendStatus] = useState('Checking...');
   const [modelInputs, setModelInputs] = useState(null);
 
@@ -49,7 +49,7 @@ export default function App() {
       .then(result => {
         setBackendStatus('Connected');
         const prediction = result.predicted_temp;
-        const liveAccuracy = result.accuracy || 97.6;
+        const liveAccuracy = result.accuracy || 87.2;
         const nextActual = result.next_actual;
         
         setCurrentIndoorTemp(nextActual);
@@ -189,7 +189,7 @@ export default function App() {
             <div className="glass-panel kpi-card">
               <div className="kpi-header">
                 <div className="kpi-icon-box"><Activity size={18} color="#ff007f" /></div>
-                LNN 1h Forecast
+                LNN 30m Forecast
               </div>
               <div className="kpi-value-container">
                 <span className="kpi-value" style={{ color: '#ff007f' }}>{predictedTemp.toFixed(2)}</span>
