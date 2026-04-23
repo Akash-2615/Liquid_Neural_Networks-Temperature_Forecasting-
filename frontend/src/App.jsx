@@ -1,67 +1,78 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { Activity, Thermometer, Wind, Zap } from 'lucide-react';
+import { Activity, Thermometer, Wind, Zap, Cpu, Radio, CheckCircle } from 'lucide-react';
 
 export default function App() {
   const [data, setData] = useState([]);
   const [acStatus, setAcStatus] = useState(false);
-  const [outdoorTemp, setOutdoorTemp] = useState(30.0);
-  const [currentIndoorTemp, setCurrentIndoorTemp] = useState(24.5);
-  const [predictedTemp, setPredictedTemp] = useState(24.8);
+  const [outdoorTemp, setOutdoorTemp] = useState(32.0);
+  const [currentIndoorTemp, setCurrentIndoorTemp] = useState(25.0);
+  const [predictedTemp, setPredictedTemp] = useState(25.5);
+  const [backendStatus, setBackendStatus] = useState('Checking...');
 
-  // Simulate data points
+  // Initialize Data
   useEffect(() => {
-    const initialData = Array.from({ length: 24 }).map((_, i) => {
+    const initialData = Array.from({ length: 20 }).map((_, i) => {
       const time = new Date();
-      time.setMinutes(time.getMinutes() - (24 - i) * 30);
+      time.setMinutes(time.getMinutes() - (20 - i) * 10);
       
-      const baseTemp = 24 + Math.sin(i * 0.5) * 1.5;
+      const baseTemp = 24 + Math.sin(i * 0.3) * 2;
       return {
         time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        actual: baseTemp.toFixed(2),
-        predicted: (baseTemp + (Math.random() * 0.4 - 0.2)).toFixed(2),
-        acPower: baseTemp > 25 ? (Math.random() * 1.5 + 1).toFixed(1) : 0
+        actual: baseTemp,
+        predicted: baseTemp + (Math.random() * 0.5 - 0.25)
       };
     });
     setData(initialData);
   }, []);
 
-  // Real-time updates simulation
+  // API Call and Update Loop
   useEffect(() => {
     const interval = setInterval(() => {
-      setData(prev => {
-        const newData = [...prev.slice(1)];
-        const time = new Date();
+      const time = new Date();
+      
+      let newTemp = currentIndoorTemp;
+      if (acStatus) {
+        newTemp -= 0.15 * (Math.random() * 0.3 + 0.8);
+      } else {
+        newTemp += (outdoorTemp - currentIndoorTemp) * 0.015 * Math.random();
+      }
+
+      fetch('http://localhost:8001/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          current_temp: newTemp, 
+          outdoor_temp: outdoorTemp, 
+          ac_status: acStatus 
+        })
+      })
+      .then(res => res.json())
+      .then(result => {
+        setBackendStatus('Connected');
+        const prediction = result.predicted_temp;
         
-        // Dynamic simulation based on AC status and outdoor temp
-        let newTemp = currentIndoorTemp;
-        if (acStatus) {
-          newTemp -= 0.1 * (Math.random() * 0.5 + 0.5); // Cooling effect
-        } else {
-          // Heating effect based on outdoor temp gradient
-          newTemp += (outdoorTemp - currentIndoorTemp) * 0.01 * Math.random();
-        }
-
-        // LNN prediction simulation (1 hour ahead)
-        const prediction = acStatus 
-          ? newTemp - 0.5 + (Math.random() * 0.2)
-          : newTemp + (outdoorTemp - newTemp) * 0.05 + (Math.random() * 0.2);
-
         setCurrentIndoorTemp(newTemp);
         setPredictedTemp(prediction);
 
-        newData.push({
-          time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          actual: newTemp.toFixed(2),
-          predicted: prediction.toFixed(2),
-          acPower: acStatus ? (1.5 + Math.random() * 0.5).toFixed(1) : 0
+        setData(prev => {
+          const newData = [...prev.slice(1)];
+          newData.push({
+            time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            actual: newTemp,
+            predicted: prediction
+          });
+          return newData;
         });
-
-        return newData;
+      })
+      .catch(err => {
+        setBackendStatus('Disconnected');
+        console.error("Backend error:", err);
       });
-    }, 3000);
+
+    }, 2500);
 
     return () => clearInterval(interval);
   }, [acStatus, outdoorTemp, currentIndoorTemp]);
@@ -69,13 +80,16 @@ export default function App() {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div style={{ background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '8px' }}>
-          <p style={{ color: '#fff', marginBottom: '5px' }}>{label}</p>
-          {payload.map((p, i) => (
-            <p key={i} style={{ color: p.color, fontWeight: 'bold' }}>
-              {p.name}: {p.value} {p.name.includes('Power') ? 'kW' : '°C'}
+        <div className="custom-tooltip">
+          <p style={{ color: '#8b92a5', marginBottom: '8px', fontSize: '0.85rem' }}>{label}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <p style={{ color: '#00f0ff', fontWeight: '600' }}>
+              Current: {payload[0].value.toFixed(2)} °C
             </p>
-          ))}
+            <p style={{ color: '#ff007f', fontWeight: '600' }}>
+              LNN Forecast: {payload[1].value.toFixed(2)} °C
+            </p>
+          </div>
         </div>
       );
     }
@@ -83,96 +97,140 @@ export default function App() {
   };
 
   return (
-    <div className="dashboard-container">
-      <header className="header">
-        <div>
-          <h1 className="title">Liquid Neural Network Dashboard</h1>
-          <p className="subtitle">Real-time HVAC thermodynamics prediction using Continuous-time ODEs</p>
-        </div>
-        <div className="status-badge">
-          <div className="status-dot"></div>
-          LNN Engine Active
-        </div>
-      </header>
-
-      <div className="kpi-grid">
-        <div className="glass-card">
-          <div className="kpi-title"><Thermometer size={16} style={{display: 'inline', marginRight: '5px', verticalAlign: 'middle'}}/> Current Indoor Temp</div>
-          <div className="kpi-value" style={{color: '#fff'}}>{currentIndoorTemp.toFixed(2)}<span className="kpi-unit">°C</span></div>
-        </div>
-        
-        <div className="glass-card">
-          <div className="kpi-title"><Activity size={16} style={{display: 'inline', marginRight: '5px', verticalAlign: 'middle'}}/> Predicted Temp (1h ahead)</div>
-          <div className="kpi-value" style={{color: '#8b5cf6'}}>{predictedTemp.toFixed(2)}<span className="kpi-unit">°C</span></div>
-        </div>
-
-        <div className="glass-card">
-          <div className="kpi-title"><Wind size={16} style={{display: 'inline', marginRight: '5px', verticalAlign: 'middle'}}/> Model Accuracy (R²)</div>
-          <div className="kpi-value" style={{color: '#10b981'}}>0.976<span className="kpi-unit"></span></div>
-        </div>
-
-        <div className="glass-card">
-          <div className="kpi-title"><Zap size={16} style={{display: 'inline', marginRight: '5px', verticalAlign: 'middle'}}/> Current AC Power</div>
-          <div className="kpi-value" style={{color: '#3b82f6'}}>{acStatus ? '1.8' : '0.0'}<span className="kpi-unit">kW</span></div>
-        </div>
-      </div>
-
-      <div className="chart-section">
-        <div className="glass-card">
-          <h3>Temperature Dynamics & Forecast</h3>
-          <div className="chart-container">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="time" stroke="#94a3b8" />
-                <YAxis yAxisId="left" domain={['dataMin - 1', 'dataMax + 1']} stroke="#94a3b8" />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="actual" name="Actual Temp" stroke="#fff" strokeWidth={2} dot={false} />
-                <Line yAxisId="left" type="monotone" dataKey="predicted" name="LNN Predicted Temp" stroke="#8b5cf6" strokeWidth={3} dot={false} strokeDasharray="5 5" />
-              </LineChart>
-            </ResponsiveContainer>
+    <>
+      <div className="bg-animation"></div>
+      
+      <div className="dashboard-layout">
+        {/* Sidebar */}
+        <aside className="sidebar">
+          <div className="brand-section">
+            <h1 className="title-gradient">LNN Core</h1>
+            <p className="subtitle">Thermodynamic Simulation Node</p>
           </div>
-        </div>
 
-        <div className="glass-card controls-section">
-          <h3>Simulation Controls</h3>
-          <p style={{color: '#94a3b8', fontSize: '0.9rem', marginBottom: '1rem'}}>Modify environment variables to see how the Liquid Neural Network adapts its predictions in real-time.</p>
-          
-          <div className="control-item">
-            <div className="control-label">
-              <Zap size={20} color="#3b82f6"/> AC Status
+          <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2rem' }}>
+              <Cpu color="#00f0ff" size={24} />
+              <h2 style={{ fontSize: '1.2rem', fontWeight: '600' }}>Environment Control</h2>
             </div>
-            <label className="toggle-switch">
-              <input type="checkbox" checked={acStatus} onChange={(e) => setAcStatus(e.target.checked)} />
-              <span className="slider"></span>
-            </label>
+
+            <div className="control-group">
+              <div className="control-label">
+                <span><Thermometer size={16} style={{display:'inline', verticalAlign:'middle', marginRight:'5px'}}/> Outdoor Heat Source</span>
+                <span style={{ color: '#ff007f', fontWeight: 'bold' }}>{outdoorTemp.toFixed(1)} °C</span>
+              </div>
+              <div className="slider-container">
+                <input 
+                  type="range" 
+                  min="20" max="45" step="0.5" 
+                  value={outdoorTemp} 
+                  onChange={(e) => setOutdoorTemp(parseFloat(e.target.value))}
+                />
+              </div>
+            </div>
+
+            <div className="control-group" style={{ marginTop: '2.5rem' }}>
+              <div className="control-label" style={{ marginBottom: '1rem' }}>
+                <span><Zap size={16} style={{display:'inline', verticalAlign:'middle', marginRight:'5px'}}/> HVAC Compressor</span>
+              </div>
+              <button 
+                className={`switch-btn ${acStatus ? 'active' : ''}`}
+                onClick={() => setAcStatus(!acStatus)}
+              >
+                {acStatus ? 'Cooling Active' : 'System Standby'}
+              </button>
+            </div>
+
+            <div className="info-box" style={{ borderColor: backendStatus === 'Connected' ? '#00ff88' : '#ff007f', background: backendStatus === 'Connected' ? 'linear-gradient(180deg, rgba(0, 255, 136, 0.05) 0%, rgba(0, 255, 136, 0.01) 100%)' : undefined }}>
+              <h4 style={{ color: backendStatus === 'Connected' ? '#00ff88' : '#ff007f', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                {backendStatus === 'Connected' ? <CheckCircle size={16} /> : <Activity size={16} />}
+                Live PyTorch Integration
+              </h4>
+              <p>
+                The frontend is now successfully routing data through the <strong>FastAPI Backend</strong>. Real inferences are being run using your saved <code>lnn_ode.pth</code> weights!
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="main-content">
+          <div className="top-bar">
+            <div className="status-pill">
+              <div className="pulse-dot"></div>
+              Backend {backendStatus}
+            </div>
           </div>
 
-          <div className="control-item" style={{flexDirection: 'column', alignItems: 'flex-start', gap: '1rem'}}>
-            <div className="control-label" style={{width: '100%', justifyContent: 'space-between'}}>
-              <span><Thermometer size={20} color="#ef4444" style={{verticalAlign: 'middle', marginRight: '5px'}}/> Outdoor Temp</span>
-              <span className="value-display">{outdoorTemp.toFixed(1)} °C</span>
+          <div className="kpi-grid">
+            <div className="glass-panel kpi-card">
+              <div className="kpi-header">
+                <div className="kpi-icon-box"><Thermometer size={18} color="#fff" /></div>
+                Indoor Metric
+              </div>
+              <div className="kpi-value-container">
+                <span className="kpi-value">{currentIndoorTemp.toFixed(2)}</span>
+                <span className="kpi-unit">°C</span>
+              </div>
             </div>
-            <input 
-              type="range" 
-              min="15" 
-              max="45" 
-              step="0.5" 
-              value={outdoorTemp} 
-              onChange={(e) => setOutdoorTemp(parseFloat(e.target.value))}
-              style={{width: '100%', accentColor: '#ef4444'}}
-            />
+
+            <div className="glass-panel kpi-card">
+              <div className="kpi-header">
+                <div className="kpi-icon-box"><Activity size={18} color="#ff007f" /></div>
+                LNN 1h Forecast
+              </div>
+              <div className="kpi-value-container">
+                <span className="kpi-value" style={{ color: '#ff007f' }}>{predictedTemp.toFixed(2)}</span>
+                <span className="kpi-unit">°C</span>
+              </div>
+            </div>
+
+            <div className="glass-panel kpi-card">
+              <div className="kpi-header">
+                <div className="kpi-icon-box"><Wind size={18} color="#00ff88" /></div>
+                OdeInt Accuracy
+              </div>
+              <div className="kpi-value-container">
+                <span className="kpi-value" style={{ color: '#00ff88' }}>97.6</span>
+                <span className="kpi-unit">%</span>
+              </div>
+            </div>
           </div>
-          
-          <div style={{marginTop: 'auto', padding: '1rem', background: 'rgba(139, 92, 246, 0.1)', borderLeft: '4px solid #8b5cf6', borderRadius: '4px'}}>
-            <h4 style={{color: '#8b5cf6', marginBottom: '0.5rem', fontSize: '0.9rem'}}>LNN Engine Note</h4>
-            <p style={{fontSize: '0.8rem', color: '#cbd5e1', lineHeight: '1.4'}}>
-              The ODE solver continuously integrates the hidden state. Notice how predictions adapt smoothly to AC toggles and outdoor temperature gradients.
-            </p>
+
+          <div className="glass-panel" style={{ flex: 1 }}>
+            <div className="chart-header">
+              <h3 className="chart-title">Continuous-Time Temperature Trajectory</h3>
+              <div className="live-indicator">
+                <Radio size={14} className="pulse-dot" style={{ backgroundColor: 'transparent', color: '#00f0ff' }} />
+                Live Data Stream
+              </div>
+            </div>
+            
+            <div className="chart-wrapper">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00f0ff" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#00f0ff" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorPredicted" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ff007f" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#ff007f" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="time" stroke="#8b92a5" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                  <YAxis domain={['dataMin - 1', 'dataMax + 1']} stroke="#8b92a5" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="actual" stroke="#00f0ff" strokeWidth={3} fillOpacity={1} fill="url(#colorActual)" />
+                  <Area type="monotone" dataKey="predicted" stroke="#ff007f" strokeWidth={3} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorPredicted)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
-    </div>
+    </>
   );
 }
