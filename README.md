@@ -10,6 +10,16 @@ This project implements a **Liquid Neural Network (LNN)** utilizing Ordinary Dif
 
 The model predicts the **30-minute ahead indoor temperature** (shifted by exactly **30 timesteps**) for a specific zone based on current and historical HVAC operational data, weather conditions, and time-based cyclical features.
 
+## 🔬 Research & Why Liquid Neural Networks (LNNs)?
+
+This architecture was selected after **detailed and extensive research** into time-series forecasting models for physical systems. While traditional models (like LSTMs, GRUs, or basic MLPs) excel at rigid sequence modeling, they struggle with the physical realities of continuous thermodynamic momentum.
+
+**Key Advantages of LNNs over existing models:**
+1. **Continuous-Time Modeling**: Unlike standard RNNs/LSTMs which process data in discrete time steps, LNNs use Ordinary Differential Equations (ODEs) to model hidden states continuously. This perfectly maps to the physical laws of temperature and heat transfer.
+2. **Dynamic Adaptability ("Liquidity")**: LNNs possess "liquid" time-constants. The equations governing the network dynamically adjust *during inference* based on incoming data, allowing the model to instantly adapt to sudden environmental disturbances (e.g., an AC compressor surging or weather shifts).
+3. **High Parameter Efficiency**: LNNs achieve state-of-the-art predictive accuracy with significantly fewer parameters than bloated Transformer or Deep LSTM networks, ensuring rapid, lightweight real-time inference on edge devices.
+4. **Robustness to Sensor Noise**: The mathematical constraints of ODE solvers act as a natural physical regularization, making LNNs highly resistant to IoT sensor noise and irregular sampling intervals.
+
 ## ⚙️ Fully Inference-Driven Simulation
 The frontend dashboard contains **zero hardcoded physics or simulation math**. 
 1. The frontend passes its absolute physical state (temperature, AC status) to the FastAPI backend.
