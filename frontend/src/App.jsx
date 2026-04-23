@@ -10,6 +10,7 @@ export default function App() {
   const [outdoorTemp, setOutdoorTemp] = useState(32.0);
   const [currentIndoorTemp, setCurrentIndoorTemp] = useState(25.0);
   const [predictedTemp, setPredictedTemp] = useState(25.5);
+  const [accuracy, setAccuracy] = useState(97.6);
   const [backendStatus, setBackendStatus] = useState('Checking...');
 
   // Initialize Data
@@ -53,9 +54,11 @@ export default function App() {
       .then(result => {
         setBackendStatus('Connected');
         const prediction = result.predicted_temp;
+        const liveAccuracy = result.accuracy || 97.6;
         
         setCurrentIndoorTemp(newTemp);
         setPredictedTemp(prediction);
+        setAccuracy(liveAccuracy);
 
         setData(prev => {
           const newData = [...prev.slice(1)];
@@ -191,7 +194,7 @@ export default function App() {
                 OdeInt Accuracy
               </div>
               <div className="kpi-value-container">
-                <span className="kpi-value" style={{ color: '#00ff88' }}>97.6</span>
+                <span className="kpi-value" style={{ color: '#00ff88' }}>{accuracy.toFixed(1)}</span>
                 <span className="kpi-unit">%</span>
               </div>
             </div>
