@@ -46,20 +46,36 @@ While the continuous variable (R²) tracks at ~97%, the absolute classification 
 
 ```
 LNN 2/
-├── mn.ipynb                       # Main Jupyter Notebook containing the training & eval pipeline
-├── output.png                     # Visualizations of predictions vs. ground truth
-├── lnn_ode_model/
+├── backend/                       # Python FastAPI backend server
+│   ├── main.py                    # Inference engine linking PyTorch model to frontend
+│   └── requirements.txt           # Backend dependencies
+├── frontend/                      # React + Vite interactive dashboard
+│   ├── src/                       # Contains App.jsx, index.css, and UI components
+│   └── package.json               # Frontend dependencies
+├── lnn_ode_model/                 # Saved LNN PyTorch assets
 │   ├── lnn_ode.pth                # Trained PyTorch model weights
-│   ├── scaler_X.save              # Fitted feature scaler
+│   ├── scaler_X.save              # Fitted 14-feature input scaler
 │   └── scaler_y.save              # Fitted target scaler
+├── mn.ipynb                       # Original Jupyter Notebook (training & evaluation)
 └── README.md                      # Project documentation
 ```
 
-## ⚙️ Requirements
+## 🚀 How to Run
 
-- `torch`
-- `torchdiffeq` (for the ODE solver)
-- `pandas`
-- `numpy`
-- `scikit-learn`
-- `matplotlib` / `seaborn` (for visualization)
+### 1. Start the FastAPI Backend
+The Python backend acts as the physics simulation engine, loading the saved PyTorch ODE model to process real-time environmental forecasts.
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8001
+```
+
+### 2. Start the React Dashboard
+The Vite frontend hosts the interactive dashboard where you can simulate environmental changes.
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Once both servers are running, open your browser and navigate to **http://localhost:3000** (or the exact port shown in your terminal by Vite). Toggle the AC switch or change the outdoor heat source to see the Neural ODE dynamically recalculate the physical trajectory!
