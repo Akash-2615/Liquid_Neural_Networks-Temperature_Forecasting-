@@ -6,13 +6,13 @@
 
 This project implements a **Liquid Neural Network (LNN)** utilizing Ordinary Differential Equations (ODEs) via PyTorch and `torchdiffeq`. I researched and chose Liquid Neural Networks for this task because **LNNs are uniquely capable of adapting to dynamic, continuous-time environments**, making them highly effective for forecasting physical systems like building thermodynamics where variables change fluidly over time.
 
-The model predicts the **30-minute ahead indoor temperature** for a specific zone based on current and historical HVAC operational data, weather conditions, and time-based cyclical features.
+The model predicts the **30-minute ahead indoor temperature** (shifted by exactly **30 timesteps**) for a specific zone based on current and historical HVAC operational data, weather conditions, and time-based cyclical features.
 
 ## ⚙️ Fully Inference-Driven Simulation
 The frontend dashboard contains **zero hardcoded physics or simulation math**. 
 1. The frontend passes its absolute physical state (temperature, AC status) to the FastAPI backend.
 2. The backend constructs a 14-dimensional tensor (including generated dynamic features like `ac_temp_diff`) and runs it through the saved `lnn_ode.pth` model.
-3. The model's 30-minute forecast dictates the physical trajectory. The backend steps the environment slightly towards this forecast, making the live trajectory 100% driven by the neural ODE weights.
+3. The model's **30-step forecast** dictates the physical trajectory. The backend steps the environment slightly towards this forecast, making the live trajectory 100% driven by the neural ODE weights.
 
 ## 🧠 Architecture: Liquid Neural ODE
 

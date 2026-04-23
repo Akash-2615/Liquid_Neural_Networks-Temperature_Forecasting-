@@ -211,7 +211,10 @@ export default function App() {
 
           <div className="glass-panel" style={{ flex: 1 }}>
             <div className="chart-header">
-              <h3 className="chart-title">Continuous-Time Temperature Trajectory</h3>
+              <div>
+                <h3 className="chart-title">Continuous-Time Temperature Trajectory</h3>
+                <p style={{ color: '#8b92a5', fontSize: '0.8rem', marginTop: '4px' }}>Predicting 30 Steps (30 Minutes) Ahead</p>
+              </div>
               <div className="live-indicator">
                 <Radio size={14} className="pulse-dot" style={{ backgroundColor: 'transparent', color: '#00f0ff' }} />
                 Live Data Stream
@@ -233,7 +236,7 @@ export default function App() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                   <XAxis dataKey="time" stroke="#8b92a5" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
-                  <YAxis domain={['dataMin - 1', 'dataMax + 1']} stroke="#8b92a5" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                  <YAxis domain={['dataMin - 0.5', 'dataMax + 0.5']} stroke="#8b92a5" tick={{fontSize: 12}} tickLine={false} axisLine={false} tickFormatter={(val) => val.toFixed(1) + '°'} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="actual" stroke="#00f0ff" strokeWidth={3} fillOpacity={1} fill="url(#colorActual)" />
                   <Area type="monotone" dataKey="predicted" stroke="#ff007f" strokeWidth={3} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorPredicted)" />
